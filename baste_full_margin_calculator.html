@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baste — Full Product Margin Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.15);
+    --text: #1c1a16;
+    --text-2: #6b6860;
+    --text-3: #a8a69f;
+    --green: #2d6a3f;
+    --green-bg: #eaf4ec;
+    --amber: #8a5200;
+    --amber-bg: #fef3e2;
+    --red: #9b2626;
+    --red-bg: #fdf0f0;
+    --blue: #1a4d7c;
+    --blue-bg: #eef4fc;
+    --accent: #c8a96e;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2.5rem 1rem 4rem;
+  }
+
+  .container { max-width: 760px; margin: 0 auto; }
+
+  /* Header */
+  .header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .brand { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  h1 { font-size: 24px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; }
+  h1 span { font-weight: 500; }
+  .header-meta { font-size: 12px; color: var(--text-3); margin-top: 6px; font-family: 'DM Mono', monospace; }
+  .version-tag { font-family: 'DM Mono', monospace; font-size: 10px; padding: 4px 10px; border-radius: 3px; background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(138,82,0,0.2); white-space: nowrap; }
+
+  /* Category tabs */
+  .cat-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border: 0.5px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+  .cat-tab {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-right: 0.5px solid var(--border-strong);
+    text-align: center;
+  }
+  .cat-tab:last-child { border-right: none; }
+  .cat-tab:hover { background: var(--surface2); }
+  .cat-tab.active { background: var(--text); color: #fff; font-weight: 500; }
+  .cat-tab .cat-count { font-family: 'DM Mono', monospace; font-size: 10px; opacity: 0.6; display: block; margin-top: 2px; }
+
+  /* Cards */
+  .card { background: var(--surface); border-radius: 10px; border: 0.5px solid var(--border); padding: 1.5rem; margin-bottom: 1rem; }
+  .card-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 1rem; }
+
+  /* SKU pills */
+  .sku-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .sku-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 0.5px solid var(--border-strong);
+    background: transparent;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    color: var(--text-2);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .sku-pill:hover { background: var(--surface2); }
+  .sku-pill.active { background: var(--text); color: #fff; border-color: var(--text); font-weight: 500; }
+  .sku-pill .cogs-hint { font-family: 'DM Mono', monospace; font-size: 10px; opacity: 0.65; margin-left: 4px; }
+
+  /* Price sliders */
+  .price-block { margin-bottom: 1.25rem; }
+  .price-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .price-lbl { font-size: 13px; color: var(--text-2); min-width: 72px; }
+  .tag { font-size: 10px; padding: 2px 8px; border-radius: 3px; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-amber { background: var(--amber-bg); color: var(--amber); }
+  .tag-red { background: var(--red-bg); color: var(--red); }
+  .tag-gray { background: var(--surface2); color: var(--text-2); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); }
+
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none;
+    height: 3px; border-radius: 2px;
+    background: #d8d5ce; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--text); cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--text); cursor: pointer;
+    border: 2px solid #fff;
+  }
+  input[type=range]:disabled { opacity: 0.35; cursor: not-allowed; }
+  .price-out { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; min-width: 52px; text-align: right; }
+
+  /* Alerts */
+  .alert { border-radius: 6px; padding: 10px 14px; font-size: 12px; margin-bottom: 1rem; display: none; line-height: 1.6; font-family: 'DM Mono', monospace; }
+  .alert-warn { background: var(--amber-bg); color: var(--amber); border-left: 3px solid var(--amber); }
+  .alert-good { background: var(--green-bg); color: var(--green); border-left: 3px solid var(--green); }
+  .alert-dead { background: var(--red-bg); color: var(--red); border-left: 3px solid var(--red); }
+
+  /* Metrics */
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.25rem; }
+  .metric { background: var(--surface2); border-radius: 8px; padding: 14px 12px; }
+  .metric-name { font-size: 11px; color: var(--text-3); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  .metric-val { font-size: 24px; font-weight: 300; letter-spacing: -0.02em; }
+  .metric-sub { font-size: 11px; margin-top: 3px; font-family: 'DM Mono', monospace; }
+  .c-green { color: var(--green); }
+  .c-amber { color: var(--amber); }
+  .c-red { color: var(--red); }
+  .c-gray { color: var(--text-2); }
+
+  /* Breakdown */
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .col-title { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-2); margin-bottom: 10px; letter-spacing: 0.05em; }
+
+  .breakdown-tbl { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .breakdown-tbl tr { border-bottom: 0.5px solid var(--border); }
+  .breakdown-tbl tr:last-child { border-bottom: none; }
+  .breakdown-tbl td { padding: 7px 0; color: var(--text-2); }
+  .breakdown-tbl td:last-child { text-align: right; font-family: 'DM Mono', monospace; color: var(--text); }
+  .breakdown-tbl tr.total-row td { font-weight: 500; padding-top: 10px; color: var(--text); border-top: 0.5px solid var(--border-strong); border-bottom: none; }
+  .neg { color: var(--red) !important; }
+  .pos { color: var(--green) !important; }
+
+  /* Summary */
+  .summary-scroll { overflow-x: auto; }
+  .summary-tbl { width: 100%; font-size: 12px; border-collapse: collapse; min-width: 400px; }
+  .summary-tbl th { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--border-strong); font-weight: 400; }
+  .summary-tbl th:not(:first-child) { text-align: right; }
+  .summary-tbl td { padding: 8px; border-bottom: 0.5px solid var(--border); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .summary-tbl td:not(:first-child) { text-align: right; }
+  .summary-tbl tr:last-child td { border-bottom: none; }
+  .summary-tbl .sku-name { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text); }
+  .summary-tbl .cat-label { font-size: 10px; color: var(--text-3); font-family: 'DM Mono', monospace; display: block; }
+
+  /* Assumptions */
+  .assume-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .assume-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; padding: 7px 10px;
+    background: var(--surface2); border-radius: 5px; gap: 8px;
+  }
+  .assume-row .ak { color: var(--text-2); flex: 1; }
+  .assume-row .av { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 11px; }
+
+  /* TBD list */
+  .tbd-list { display: flex; flex-direction: column; gap: 0; }
+  .tbd-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .tbd-item:last-child { border-bottom: none; }
+  .tbd-circle { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-strong); flex-shrink: 0; margin-top: 2px; }
+  .tbd-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .tbd-note { font-size: 11px; color: var(--text-3); line-height: 1.5; font-family: 'DM Mono', monospace; }
+
+  /* Viability banner */
+  .viability-banner {
+    background: var(--red-bg);
+    border: 0.5px solid rgba(155,38,38,0.2);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .viability-banner .vb-title { font-size: 13px; font-weight: 500; color: var(--red); margin-bottom: 4px; }
+  .viability-banner .vb-body { font-size: 12px; color: var(--red); line-height: 1.6; font-family: 'DM Mono', monospace; }
+
+  footer { text-align: center; font-size: 11px; color: var(--text-3); margin-top: 2.5rem; line-height: 2; font-family: 'DM Mono', monospace; }
+
+  @media (max-width: 540px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .assume-grid { grid-template-columns: 1fr; }
+    .cat-tab .cat-count { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">Baste · Internal</div>
+        <h1><span>Full Product</span> Margin Calculator</h1>
+        <div class="header-meta">Sauces · Boosters · Blends · 2026 FBA rates · Working model</div>
+      </div>
+      <div class="version-tag">v4 — Combined</div>
+    </div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="cat-tabs">
+    <button class="cat-tab active" onclick="setCat('sauces', this)">
+      Sauces
+      <span class="cat-count">3 SKUs · Glass</span>
+    </button>
+    <button class="cat-tab" onclick="setCat('boosters', this)">
+      Boosters
+      <span class="cat-count">6 SKUs · Plastic</span>
+    </button>
+    <button class="cat-tab" onclick="setCat('blends', this)">
+      Blends
+      <span class="cat-count">2 SKUs · Viability ⚠</span>
+    </button>
+    <button class="cat-tab" onclick="setCat('summary', this)">
+      All SKUs
+      <span class="cat-count">Full overview</span>
+    </button>
+  </div>
+
+  <!-- Main calculator panel -->
+  <div id="calcPanel">
+    <div class="card">
+      <div class="card-label" id="skuLabel">SKU</div>
+      <div class="sku-pills" id="skuPills"></div>
+
+      <div class="viability-banner" id="viabilityBanner">
+        <div class="vb-title">⚠ FBA Viability Issue</div>
+        <div class="vb-body" id="viabilityMsg"></div>
+      </div>
+
+      <div class="card-label">Pricing</div>
+
+      <div class="price-block">
+        <div class="price-header">
+          <span class="price-lbl">Single pack</span>
+          <span class="tag" id="singleRefTag">8% referral</span>
+          <span class="tag tag-gray" id="singleTierTag">Large std</span>
+        </div>
+        <div class="slider-row">
+          <input type="range" id="singleSlider" oninput="update()">
+          <span class="price-out" id="singleOut"></span>
+        </div>
+      </div>
+
+      <div id="twoPackBlock" class="price-block">
+        <div class="price-header">
+          <span class="price-lbl">2-pack</span>
+          <span class="tag" id="twoRefTag">15% referral</span>
+          <span class="tag tag-gray" id="twoTierTag">Large std</span>
+        </div>
+        <div class="slider-row">
+          <input type="range" id="twoSlider" oninput="update()">
+          <span class="price-out" id="twoOut"></span>
+        </div>
+      </div>
+
+      <div class="alert alert-warn" id="alertWarn"></div>
+      <div class="alert alert-good" id="alertGood"></div>
+      <div class="alert alert-dead" id="alertDead"></div>
+
+      <div class="metrics-grid" id="metricsGrid"></div>
+
+      <div class="divider"></div>
+      <div class="two-col" id="breakdowns"></div>
+
+      <div style="background:var(--amber-bg);border-radius:6px;padding:10px 14px;font-size:11px;color:var(--amber);margin-top:1.25rem;font-family:'DM Mono',monospace;line-height:1.6;">
+        Prep & packaging = estimate · FBA fee excludes fuel & logistics surcharge · Confirm all figures with 3PL and Seller Central
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary panel -->
+  <div id="summaryPanel" style="display:none;">
+    <div class="card">
+      <div class="card-label">All SKUs — current price settings</div>
+      <div class="summary-scroll">
+        <table class="summary-tbl" id="summaryTbl"></table>
+      </div>
+      <div style="margin-top:1rem;font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;line-height:1.7;">
+        Prices shown are defaults. Switch to individual category tabs to adjust pricing and see live margin impact.
+      </div>
+    </div>
+  </div>
+
+  <!-- Assumptions -->
+  <div class="card">
+    <div class="card-label">Fee assumptions</div>
+    <div class="assume-grid">
+      <div class="assume-row"><span class="ak">Sauce FBA — single (~1.375lb)</span><span class="av">$5.42 <span class="tag tag-blue">confirmed</span></span></div>
+      <div class="assume-row"><span class="ak">Sauce FBA — 2-pack (~2.75lb)</span><span class="av">$6.26 <span class="tag tag-blue">confirmed</span></span></div>
+      <div class="assume-row"><span class="ak">Booster FBA — single (~8–9oz)</span><span class="av">$4.20 <span class="tag tag-amber">estimate</span></span></div>
+      <div class="assume-row"><span class="ak">Booster FBA — 2-pack (~18oz)</span><span class="av">$5.04 <span class="tag tag-amber">estimate</span></span></div>
+      <div class="assume-row"><span class="ak">Blend FBA — single (<$10 tier)</span><span class="av">$3.38 <span class="tag tag-amber">estimate</span></span></div>
+      <div class="assume-row"><span class="ak">Referral — Grocery ≤$15</span><span class="av">8% <span class="tag tag-blue">confirmed</span></span></div>
+      <div class="assume-row"><span class="ak">Referral — over $15</span><span class="av">15% <span class="tag tag-blue">confirmed</span></span></div>
+      <div class="assume-row"><span class="ak">Sauce prep & pkg — single</span><span class="av">$1.50 <span class="tag tag-red">TBD</span></span></div>
+      <div class="assume-row"><span class="ak">Sauce prep & pkg — 2-pack</span><span class="av">$2.00 <span class="tag tag-red">TBD</span></span></div>
+      <div class="assume-row"><span class="ak">Booster prep & pkg — single</span><span class="av">$0.75 <span class="tag tag-red">TBD</span></span></div>
+      <div class="assume-row"><span class="ak">Booster prep & pkg — 2-pack</span><span class="av">$1.50 <span class="tag tag-red">TBD</span></span></div>
+      <div class="assume-row"><span class="ak">Fuel & logistics surcharge</span><span class="av">Not incl. <span class="tag tag-red">TBD</span></span></div>
+    </div>
+  </div>
+
+  <!-- Outstanding items -->
+  <div class="card">
+    <div class="card-label">Outstanding — confirm with client & 3PL</div>
+    <div class="tbd-list">
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">3PL per-unit prep fee — sauces</div><div class="tbd-note">Full sequence: receive → bubble wrap → polybag → FNSKU label → master carton → carton label</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">3PL per-unit prep fee — boosters & blends</div><div class="tbd-note">Simpler sequence: receive → FNSKU label → master carton — confirm rate vs sauce</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">Materials — included in 3PL rate or billed separately?</div><div class="tbd-note">Bubble wrap, polybags, master cartons, boxes, dividers, void fill</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">3PL monthly minimums & storage fees</div><div class="tbd-note">Critical at low volume — minimums can equal or exceed per-unit prep cost</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">Exact packaged weights — all SKUs</div><div class="tbd-note">Weigh fully prepped units to confirm FBA fee brackets in Seller Central Revenue Calculator</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">Brand Registry status</div><div class="tbd-note">Determines FNSKU vs manufacturer barcode — affects label placement workflow for all SKUs</div></div></div>
+      <div class="tbd-item"><div class="tbd-circle"></div><div><div class="tbd-title">Blend pricing strategy</div><div class="tbd-note">$6.00 does not work on FBA — client needs to decide: raise price, sell DTC only, or remove from FBA</div></div></div>
+    </div>
+  </div>
+
+  <footer>
+    Baste · Internal use only · Do not share externally<br>
+    FBA fees from Amazon Seller Central Jan 15 2026 rate tables<br>
+    Prep & packaging = working estimates · Confirm all figures before client presentation
+  </footer>
+</div>
+
+<script>
+const CATS = {
+  sauces: {
+    label: 'Sauce SKUs',
+    skus: [
+      { name: 'Spicy', cogs: 3.81 },
+      { name: 'Sweet', cogs: 3.58 },
+      { name: 'Tangy', cogs: 3.94 },
+    ],
+    defaultSingle: 14.99, defaultTwo: 27.99,
+    minSingle: 9.99, maxSingle: 19.99,
+    minTwo: 19.99, maxTwo: 35.99,
+    fba1: 5.42, fba2: 6.26,
+    prep1: 1.50, prep2: 2.00,
+    hasTwoPack: true,
+    tier1: 'Large std · ~1.375lb',
+    tier2: 'Large std · ~2.75lb',
+    packingNote1: 'Glass · bubble wrap + polybag',
+    packingNote2: 'Box + divider',
+    type: 'sauce',
+  },
+  boosters: {
+    label: 'Booster SKUs',
+    skus: [
+      { name: 'Cozy', cogs: 3.85 },
+      { name: 'Fusion', cogs: 3.64 },
+      { name: 'Savory', cogs: 3.16 },
+      { name: 'Signature', cogs: 3.52 },
+      { name: 'Snappy', cogs: 3.51 },
+      { name: 'Zesty', cogs: 4.03 },
+    ],
+    defaultSingle: 11.99, defaultTwo: 21.99,
+    minSingle: 9.99, maxSingle: 19.99,
+    minTwo: 17.99, maxTwo: 32.99,
+    fba1: 4.20, fba2: 5.04,
+    prep1: 0.75, prep2: 1.50,
+    hasTwoPack: true,
+    tier1: 'Large std · ~8–9oz',
+    tier2: 'Large std · ~18oz',
+    packingNote1: 'Plastic · label + carton',
+    packingNote2: 'Box + label',
+    type: 'booster',
+  },
+  blends: {
+    label: 'Blend SKUs',
+    skus: [
+      { name: 'Garlic & Onion', cogs: 1.91 },
+      { name: 'Salt & Pepper', cogs: 1.60 },
+    ],
+    defaultSingle: 6.00, defaultTwo: null,
+    minSingle: 4.99, maxSingle: 12.99,
+    minTwo: null, maxTwo: null,
+    fba1: 3.38, fba2: null,
+    prep1: 0.75, prep2: null,
+    hasTwoPack: false,
+    tier1: 'Large std · ~8–9oz',
+    tier2: null,
+    packingNote1: 'Plastic · label + carton',
+    packingNote2: null,
+    type: 'blend',
+  },
+};
+
+let currentCat = 'sauces';
+let currentSkuIdx = 0;
+
+// Store per-category prices
+const prices = {
+  sauces: { single: 14.99, two: 27.99 },
+  boosters: { single: 11.99, two: 21.99 },
+  blends: { single: 6.00, two: null },
+};
+
+function setCat(cat, el) {
+  currentCat = cat;
+  currentSkuIdx = 0;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  const isSum = cat === 'summary';
+  document.getElementById('calcPanel').style.display = isSum ? 'none' : 'block';
+  document.getElementById('summaryPanel').style.display = isSum ? 'block' : 'none';
+
+  if (!isSum) {
+    buildSkuPills();
+    syncSliders();
+    update();
+  } else {
+    buildSummary();
+  }
+}
+
+function buildSkuPills() {
+  const cat = CATS[currentCat];
+  document.getElementById('skuLabel').textContent = cat.label;
+  const container = document.getElementById('skuPills');
+  container.innerHTML = cat.skus.map((s, i) => `
+    <button class="sku-pill ${i === currentSkuIdx ? 'active' : ''}" onclick="setSku(${i}, this)">
+      ${s.name}<span class="cogs-hint">$${s.cogs.toFixed(2)}</span>
+    </button>
+  `).join('');
+}
+
+function setSku(idx, el) {
+  currentSkuIdx = idx;
+  document.querySelectorAll('.sku-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  update();
+}
+
+function syncSliders() {
+  const cat = CATS[currentCat];
+  const p = prices[currentCat];
+
+  const s = document.getElementById('singleSlider');
+  s.min = cat.minSingle; s.max = cat.maxSingle; s.step = 0.50;
+  s.value = p.single;
+
+  const tBlock = document.getElementById('twoPackBlock');
+  const t = document.getElementById('twoSlider');
+  if (cat.hasTwoPack) {
+    tBlock.style.display = 'block';
+    t.min = cat.minTwo; t.max = cat.maxTwo; t.step = 1.00;
+    t.value = p.two;
+  } else {
+    tBlock.style.display = 'none';
+  }
+}
+
+function fmt(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2); }
+function fmtP(n) { return n.toFixed(1) + '%'; }
+function refFee(price) { return price <= 15 ? price * 0.08 : price * 0.15; }
+function refPct(price) { return price <= 15 ? 8 : 15; }
+function cls(pct) { return pct >= 20 ? 'c-green' : pct >= 10 ? 'c-amber' : 'c-red'; }
+
+function calcNet(price, cogs, fba, prep) {
+  const ref = refFee(price);
+  const net = price - cogs - ref - fba - prep;
+  return { net, pct: (net / price) * 100, ref };
+}
+
+function update() {
+  const cat = CATS[currentCat];
+  const sku = cat.skus[currentSkuIdx];
+
+  const sp = parseFloat(document.getElementById('singleSlider').value);
+  prices[currentCat].single = sp;
+  document.getElementById('singleOut').textContent = '$' + sp.toFixed(2);
+
+  const sRefPct = refPct(sp);
+  document.getElementById('singleRefTag').textContent = sRefPct + '% referral';
+  document.getElementById('singleRefTag').className = 'tag ' + (sRefPct === 8 ? 'tag-green' : 'tag-amber');
+  document.getElementById('singleTierTag').textContent = cat.tier1;
+
+  let tp = null, tResult = null;
+  if (cat.hasTwoPack) {
+    tp = parseFloat(document.getElementById('twoSlider').value);
+    prices[currentCat].two = tp;
+    document.getElementById('twoOut').textContent = '$' + tp.toFixed(2);
+    const tRefPct = refPct(tp);
+    document.getElementById('twoRefTag').textContent = tRefPct + '% referral';
+    document.getElementById('twoRefTag').className = 'tag ' + (tRefPct === 8 ? 'tag-green' : 'tag-amber');
+    document.getElementById('twoTierTag').textContent = cat.tier2;
+    tResult = calcNet(tp, sku.cogs * 2, cat.fba2, cat.prep2);
+  }
+
+  const sResult = calcNet(sp, sku.cogs, cat.fba1, cat.prep1);
+
+  // Alerts
+  const warn = document.getElementById('alertWarn');
+  const good = document.getElementById('alertGood');
+  const dead = document.getElementById('alertDead');
+  const viab = document.getElementById('viabilityBanner');
+
+  warn.style.display = 'none';
+  good.style.display = 'none';
+  dead.style.display = 'none';
+  viab.style.display = 'none';
+
+  if (cat.type === 'blend' || sResult.net < 0) {
+    viab.style.display = 'block';
+    document.getElementById('viabilityMsg').textContent =
+      sp <= 8
+        ? 'At $' + sp.toFixed(2) + ', this SKU loses money on every FBA order. FBA is not viable at this price point. Options: raise price to $10+, sell DTC only, or remove from FBA.'
+        : 'Margin is critically thin at $' + sp.toFixed(2) + '. Consider raising price or evaluating DTC as the primary channel.';
+  } else if (sp > 15.00) {
+    warn.style.display = 'block';
+    warn.textContent = '⚠ Over $15 — referral jumps to 15%. Need $16.99+ before crossing the cliff is worthwhile.';
+  } else if (sp >= 14.49 && sp <= 15.00) {
+    good.style.display = 'block';
+    good.textContent = '✓ Under $15 — locked into 8% Grocery referral fee.';
+  }
+
+  // Metrics
+  const pb2 = tResult ? tResult.net / 2 : null;
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric">
+      <div class="metric-name">Single profit</div>
+      <div class="metric-val ${cls(sResult.pct)}">${fmt(sResult.net)}</div>
+      <div class="metric-sub ${cls(sResult.pct)}">${fmtP(sResult.pct)} margin</div>
+    </div>
+    ${tResult ? `
+    <div class="metric">
+      <div class="metric-name">2-pack profit</div>
+      <div class="metric-val ${cls(tResult.pct)}">${fmt(tResult.net)}</div>
+      <div class="metric-sub ${cls(tResult.pct)}">${fmtP(tResult.pct)} margin</div>
+    </div>
+    <div class="metric">
+      <div class="metric-name">Per bottle (2-pk)</div>
+      <div class="metric-val ${cls(tResult.pct)}">${fmt(pb2)}</div>
+      <div class="metric-sub c-gray">vs ${fmt(sResult.net)} single</div>
+    </div>` : `
+    <div class="metric">
+      <div class="metric-name">COGS</div>
+      <div class="metric-val c-gray">${fmt(sku.cogs)}</div>
+      <div class="metric-sub c-gray">per unit</div>
+    </div>
+    <div class="metric">
+      <div class="metric-name">FBA + fees</div>
+      <div class="metric-val c-red">${fmt(cat.fba1 + sResult.ref + cat.prep1)}</div>
+      <div class="metric-sub c-gray">excl. surcharge</div>
+    </div>`}
+  `;
+
+  // Breakdowns
+  function makeTable(title, price, cogsVal, fba, prep, result) {
+    return `
+      <div>
+        <div class="col-title">${title} · ${fmt(price)}</div>
+        <table class="breakdown-tbl">
+          <tr><td>COGS</td><td class="neg">${fmt(-cogsVal)}</td></tr>
+          <tr><td>Referral (${refPct(price)}%)</td><td class="neg">${fmt(-result.ref)}</td></tr>
+          <tr><td>FBA fulfillment</td><td class="neg">${fmt(-fba)}</td></tr>
+          <tr><td>Prep & packaging <span class="tag tag-amber" style="font-size:9px">est.</span></td><td class="neg">${fmt(-prep)}</td></tr>
+          <tr class="total-row"><td>Net profit</td><td class="${result.net >= 0 ? 'pos' : 'neg'}">${fmt(result.net)}</td></tr>
+        </table>
+      </div>
+    `;
+  }
+
+  let bkd = makeTable('Single', sp, sku.cogs, cat.fba1, cat.prep1, sResult);
+  if (tResult) {
+    bkd += makeTable('2-pack', tp, sku.cogs * 2, cat.fba2, cat.prep2, tResult);
+  } else {
+    bkd += `<div><div class="col-title">2-pack</div><div style="font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;padding-top:8px;">No 2-pack modeled for Blends — single SKU viability needs to be resolved first.</div></div>`;
+  }
+  document.getElementById('breakdowns').innerHTML = bkd;
+}
+
+function buildSummary() {
+  const rows = [];
+  ['sauces', 'boosters', 'blends'].forEach(catKey => {
+    const cat = CATS[catKey];
+    const sp = prices[catKey].single;
+    const tp = prices[catKey].two;
+    cat.skus.forEach(sku => {
+      const s = calcNet(sp, sku.cogs, cat.fba1, cat.prep1);
+      const t = tp ? calcNet(tp, sku.cogs * 2, cat.fba2, cat.prep2) : null;
+      rows.push({ catKey, cat, sku, sp, tp, s, t });
+    });
+  });
+
+  const tbl = document.getElementById('summaryTbl');
+  tbl.innerHTML = `
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>COGS</th>
+        <th>Single price</th>
+        <th>Single profit</th>
+        <th>Single margin</th>
+        <th>2-pk profit</th>
+        <th>2-pk margin</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => `
+        <tr>
+          <td><span class="sku-name">${r.sku.name}</span><span class="cat-label">${r.cat.label.replace(' SKUs','')}</span></td>
+          <td>${fmt(r.sku.cogs)}</td>
+          <td>${fmt(r.sp)}</td>
+          <td class="${r.s.net < 0 ? 'neg' : r.s.pct < 10 ? 'c-amber' : 'c-green'}">${fmt(r.s.net)}</td>
+          <td class="${r.s.net < 0 ? 'neg' : r.s.pct < 10 ? 'c-amber' : 'c-green'}">${fmtP(r.s.pct)}</td>
+          <td class="${!r.t ? 'c-gray' : r.t.net < 0 ? 'neg' : r.t.pct < 10 ? 'c-amber' : 'c-green'}">${r.t ? fmt(r.t.net) : '—'}</td>
+          <td class="${!r.t ? 'c-gray' : r.t.net < 0 ? 'neg' : r.t.pct < 10 ? 'c-amber' : 'c-green'}">${r.t ? fmtP(r.t.pct) : '—'}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+// Init
+buildSkuPills();
+syncSliders();
+update();
+</script>
+</body>
+</html>
